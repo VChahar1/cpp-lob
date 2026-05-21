@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ ninja-build
+
+      - name: Configure (Release, warnings as errors)
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DLOB_WERROR=ON
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Run tests
+        run: ./build/tests/lob_tests --reporter compact
+
+      - name: Smoke-test CLI
+        run: |
+          echo "NEW 1 S 10100 5" > /tmp/smoke.txt
+          echo "NEW 2 B 10100 5" >> /tmp/smoke.txt
+          ./build/lob_cli /tmp/smoke.txt | grep "TRADE 2 1 10100 5"
+
+      - name: Run benchmark (small)
+        run: |
+          ./build/simulated_flow --count 100000 --seed 1 --out /tmp/flow.txt
+          ./build/bench_throughput /tmp/flow.txt

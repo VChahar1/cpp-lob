@@ -16,7 +16,26 @@ endif()
 
 # Strict warnings -- catch problems early.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor)
+    add_compile_options(
+        -Wall -Wextra -Wpedantic
+        -Wshadow
+        -Wnon-virtual-dtor
+        -Wold-style-cast
+        -Wcast-align
+        -Wunused
+        -Woverloaded-virtual
+        -Wconversion
+        -Wsign-conversion
+        -Wnull-dereference
+        -Wdouble-promotion
+        -Wformat=2
+    )
+
+    # Treat warnings as errors in CI / when explicitly requested.
+    option(LOB_WERROR "Treat warnings as errors" OFF)
+    if(LOB_WERROR)
+        add_compile_options(-Werror)
+    endif()
 endif()
 
 # The library: header-only for now (no .cpp content yet beyond stubs).
