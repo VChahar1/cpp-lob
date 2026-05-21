@@ -24,7 +24,14 @@ endif()
 add_library(lob STATIC
     src/book.cpp
     src/matching.cpp
+    src/io.cpp
 )
+add_executable(lob_cli src/main_cli.cpp)
+target_link_libraries(lob_cli PRIVATE lob)
+add_executable(simulated_flow examples/simulated_flow.cpp)
+target_link_libraries(simulated_flow PRIVATE lob)
+add_executable(bench_throughput benches/bench_throughput.cpp)
+target_link_libraries(bench_throughput PRIVATE lob)
 target_include_directories(lob PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
