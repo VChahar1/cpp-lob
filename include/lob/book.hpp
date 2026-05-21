@@ -82,7 +82,19 @@ public:
     // Precondition: no order with this id is currently resting.
     // Violating the precondition triggers an assertion failure in debug builds.
     void insert_resting(const Order& order);
+    // Look at the front (oldest) order at the best opposite-side level.
+    // Returns nullptr if that side is empty.
+    // Used by the matching engine to inspect the next order to match.
+    const Order* peek_front(Side side) const;
 
+    // Reduce the quantity of the front order on a given (side, price) level
+    // by `amount`. If the order becomes fully consumed, it is removed from
+    // the level and from the locations index. If the level becomes empty,
+    // it is erased from the map.
+    //
+    // Precondition: a level exists at (side, price) and its front order
+    // has at least `amount` quantity.
+    void consume_front(Side side, Price price, Quantity amount);
     // Test-only accessor for the locations map.
     // Returns the (side, price) of a resting order, if it exists.
     std::optional<std::pair<Side, Price>> location_of(OrderId id) const;

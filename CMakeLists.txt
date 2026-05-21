@@ -23,6 +23,7 @@ endif()
 # We use INTERFACE for now and switch to STATIC once book.cpp has content.
 add_library(lob STATIC
     src/book.cpp
+    src/matching.cpp
 )
 target_include_directories(lob PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include

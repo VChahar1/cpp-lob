@@ -77,4 +77,41 @@ std::optional<std::pair<Side, Price>> OrderBook::location_of(OrderId id) const {
     return it->second;
 }
 
+const Order* OrderBook::peek_front(Side side) const {
+    const auto& book = (side == Side::Bid) ? bids_ : asks_;
+    if (book.empty()) return nullptr;
+
+    // Best bid = max key (rbegin); best ask = min key (begin).
+    const auto best_it = (side == Side::Bid) ? std::prev(book.end()) : book.begin();
+    const auto& level = best_it->second;
+    if (level.orders.empty()) return nullptr;  // shouldn't happen with our invariants
+
+    return &level.orders.front();
+}
+
+void OrderBook::consume_front(Side side, Price price, Quantity amount) {
+    auto& book = (side == Side::Bid) ? bids_ : asks_;
+    auto it = book.find(price);
+    assert(it != book.end() && "consume_front: no level at the given price");
+
+    auto& level = it->second;
+    assert(!level.orders.empty() && "consume_front: level is empty");
+
+    Order& front = level.orders.front();
+    assert(front.quantity >= amount && "consume_front: not enough quantity at front");
+
+    front.quantity -= amount;
+
+    if (front.quantity == 0) {
+        // Order fully consumed: remove from locations index and from level.
+        locations_.erase(front.id);
+        level.orders.pop_front();
+
+        // Level might now be empty; if so, erase the level from the map.
+        if (level.orders.empty()) {
+            book.erase(it);
+        }
+    }
+}
+
 }  // namespace lob
