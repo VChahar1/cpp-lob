@@ -1,6 +1,6 @@
 #include <lob/book.hpp>
 #include <lob/order.hpp>
-
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <numeric>
@@ -113,5 +113,75 @@ void OrderBook::consume_front(Side side, Price price, Quantity amount) {
         }
     }
 }
+bool OrderBook::remove_by_id(OrderId id) {
+    const auto loc_it = locations_.find(id);
+    if (loc_it == locations_.end()) {
+        return false;  // unknown id — caller treats this as a no-op cancel
+    }
 
+    const Side  side  = loc_it->second.first;
+    const Price price = loc_it->second.second;
+
+    auto& book = (side == Side::Bid) ? bids_ : asks_;
+    auto level_it = book.find(price);
+
+    // Invariant: if id is in locations_, the level exists and contains the order.
+    assert(level_it != book.end() && "remove_by_id: level missing for known id");
+
+    auto& orders = level_it->second.orders;
+
+    // Linear scan within the level. Levels are typically small (a few orders
+    // per price tick); this is the standard tradeoff documented in the README.
+    auto order_it = std::find_if(orders.begin(), orders.end(),
+        [id](const Order& o) { return o.id == id; });
+    assert(order_it != orders.end() && "remove_by_id: order missing from level");
+
+    orders.erase(order_it);
+    locations_.erase(loc_it);
+
+    if (orders.empty()) {
+        book.erase(level_it);
+    }
+
+    return true;
+}
+const Order* OrderBook::lookup_resting(OrderId id) const {
+    const auto loc_it = locations_.find(id);
+    if (loc_it == locations_.end()) return nullptr;
+
+    const Side  side  = loc_it->second.first;
+    const Price price = loc_it->second.second;
+
+    const auto& book = (side == Side::Bid) ? bids_ : asks_;
+    const auto level_it = book.find(price);
+    assert(level_it != book.end() && "lookup_resting: level missing for known id");
+
+    const auto& orders = level_it->second.orders;
+    auto order_it = std::find_if(orders.begin(), orders.end(),
+        [id](const Order& o) { return o.id == id; });
+    assert(order_it != orders.end() && "lookup_resting: order missing from level");
+
+    return &*order_it;
+}
+
+void OrderBook::update_quantity_in_place(OrderId id, Quantity new_quantity) {
+    assert(new_quantity > 0 && "update_quantity_in_place: quantity must be positive");
+
+    const auto loc_it = locations_.find(id);
+    assert(loc_it != locations_.end() && "update_quantity_in_place: unknown id");
+
+    const Side  side  = loc_it->second.first;
+    const Price price = loc_it->second.second;
+
+    auto& book = (side == Side::Bid) ? bids_ : asks_;
+    auto level_it = book.find(price);
+    assert(level_it != book.end() && "update_quantity_in_place: level missing");
+
+    auto& orders = level_it->second.orders;
+    auto order_it = std::find_if(orders.begin(), orders.end(),
+        [id](const Order& o) { return o.id == id; });
+    assert(order_it != orders.end() && "update_quantity_in_place: order missing");
+
+    order_it->quantity = new_quantity;
+}
 }  // namespace lob

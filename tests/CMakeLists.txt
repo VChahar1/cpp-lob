@@ -11,6 +11,7 @@ add_executable(lob_tests
     test_events.cpp
     test_book.cpp
     test_matching.cpp
+    test_edge_cases.cpp
 )
 target_link_libraries(lob_tests PRIVATE lob catch2)
 

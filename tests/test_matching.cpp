@@ -171,18 +171,23 @@ TEST_CASE("Sell aggressor matches against bids", "[matching]") {
 }
 
 
-TEST_CASE("Submit dispatches NewOrder; ignores Cancel/Modify until Day 3", "[matching]") {
+TEST_CASE("Submit correctly dispatches all three event types", "[matching]") {
     OrderBook book;
+
+    // NewOrder: adds to the book.
     auto trades1 = submit(book, OrderEvent{NewOrder{1, Side::Bid, 10000, 5}});
     REQUIRE(trades1.empty());
     REQUIRE(book.best_bid() == 10000);
+    REQUIRE(book.order_count() == 1);
 
-    auto trades2 = submit(book, OrderEvent{Cancel{1}});
+    // Modify: change quantity at the same price (keeps priority).
+    auto trades2 = submit(book, OrderEvent{Modify{1, 10000, 3}});
     REQUIRE(trades2.empty());
-    // Day 3 will implement cancel; for now nothing happens.
-    REQUIRE(book.best_bid() == 10000);
+    REQUIRE(book.depth_at(Side::Bid, 10000) == 3);
 
-    auto trades3 = submit(book, OrderEvent{Modify{1, 10001, 3}});
+    // Cancel: removes the order from the book.
+    auto trades3 = submit(book, OrderEvent{Cancel{1}});
     REQUIRE(trades3.empty());
-    REQUIRE(book.best_bid() == 10000);
+    REQUIRE_FALSE(book.best_bid().has_value());
+    REQUIRE(book.order_count() == 0);
 }

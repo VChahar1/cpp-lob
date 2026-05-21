@@ -95,6 +95,20 @@ public:
     // Precondition: a level exists at (side, price) and its front order
     // has at least `amount` quantity.
     void consume_front(Side side, Price price, Quantity amount);
+    // Remove an order from the book by id. Returns true if the order existed
+    // and was removed, false if no such order is resting on the book.
+    //
+    // This is a low-level primitive used by the cancel and modify code paths.
+    bool remove_by_id(OrderId id);
+    // Look up a resting order by id. Returns nullptr if not present.
+    // Used by the modify path to read the current quantity for the keep-priority decision.
+    const Order* lookup_resting(OrderId id) const;
+
+    // Update the quantity of a resting order in place. The order's position
+    // in its price level (and therefore its time priority) is preserved.
+    //
+    // Precondition: order exists; new_quantity > 0.
+    void update_quantity_in_place(OrderId id, Quantity new_quantity);
     // Test-only accessor for the locations map.
     // Returns the (side, price) of a resting order, if it exists.
     std::optional<std::pair<Side, Price>> location_of(OrderId id) const;
