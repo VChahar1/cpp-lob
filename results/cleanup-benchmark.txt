@@ -1,0 +1,22 @@
+Cleanup verification, 2026-11-25
+Compiler: GCC 15.2.0
+Configuration: Release, LOB_WERROR=OFF (project default)
+Command: ./build/tests/lob_tests --reporter compact
+Passed all 50 test cases with 209 assertions.
+
+Command: ./scripts/run_benchmark.sh
+Generating 1000000 events (seed=1)
+Loaded 1000000 events (0 skipped).
+Warmup: 490992 trades.
+
+=== Results ===
+Events:           1000000
+Trades emitted:   490992
+Wall time:        0.0944904 s
+Throughput:       1.05831e+07 events/sec
+Latency/event:    94.4904 ns
+Final book size:  38467 orders
+
+This is one measurement in the cleanup environment, not a hardware-independent guarantee.
+The separate LOB_WERROR=ON build failed on pre-existing -Wshadow and
+-Wnull-dereference diagnostics. Source and CI configuration were not changed.

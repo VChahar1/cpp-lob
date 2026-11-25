@@ -8,20 +8,9 @@
 
 namespace lob {
 
-// Process an OrderEvent against the book.
-//
-// For NewOrder: matches against the opposite side using price-time priority,
-// emits Trades for each fill, and rests any leftover quantity on the book.
-// For Cancel and Modify: see Day 3 (these are currently unimplemented).
-//
-// Returns the list of trades emitted (possibly empty).
 std::vector<Trade> submit(OrderBook& book, const OrderEvent& event);
 
-// Internal helper exposed for testing. Processes a NewOrder against the book.
-// Returns the list of trades emitted.
 std::vector<Trade> submit_new_order(OrderBook& book, const NewOrder& order);
-// Internal helper for modify. Returns trades produced if the modify is treated
-// as cancel + new and the new portion crosses; empty otherwise.
 std::vector<Trade> submit_modify(OrderBook& book, const Modify& mod);
 
-}  // namespace lob
+}

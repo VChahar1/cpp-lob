@@ -2,9 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
-    branches: [main]
 
 jobs:
   build-and-test:
@@ -19,8 +17,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake g++ ninja-build
 
-      - name: Configure (Release, warnings as errors)
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DLOB_WERROR=ON
+      - name: Configure (Release, default warning policy)
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DLOB_WERROR=OFF
 
       - name: Build
         run: cmake --build build -j

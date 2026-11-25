@@ -1,56 +1,50 @@
 # cpp-lob
 
-[![CI](https://github.com/VChahar1/cpp-lob/actions/workflows/ci.yml/badge.svg)](https://github.com/VCHAHAR1/cpp-lob/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+A single-threaded C++17 limit order book matches limit orders in price-time order and handles cancellations and modifications.
 
-A limit order book and matching engine implemented in modern C++17. Built as a focused exercise in the data structures, algorithms, and engineering tradeoffs underlying continuous-double-auction exchange systems.
+**Observed throughput: 10.5831 million events/second over 1,000,000 synthetic events.** This is one machine-specific measurement, not a comparative speed claim.
 
-The engine implements price-time priority matching, supports new/cancel/modify order events, and processes roughly 4.94 million events/sec single-threaded on a 1M-event synthetic flow (see [Benchmarks](#benchmarks)).
+![Recorded benchmark throughput](assets/results.png)
+
 ## Quick start
 
-​```bash
-git clone https://github.com/VChahar1/cpp-lob.git
-cd cpp-lob
+From the repository root, with CMake and a C++17 compiler:
+
+```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
-./build/tests/lob_tests       # ~50 unit + integration tests
-./scripts/run_benchmark.sh    # generates 1M synthetic events and benchmarks
-​```
+cmake --build build -j2
+ctest --test-dir build --output-on-failure
+```
 
-For a quick demo:
+Run `bash scripts/run_benchmark.sh` to generate synthetic order flow locally and time it. No external market data or account is required. Optional `requirements.txt` contains only the plotting dependency; `scripts/plot_results.py` recreates the chart from the committed log.
 
-​```bash
-echo "NEW 1 S 10100 5
-NEW 2 B 10100 5" | ./build/lob_cli
-# Output: TRADE 2 1 10100 5
-​```
-## What's not implemented (and why)
+## Method
 
-This is a learning project, not a production exchange. Scope was deliberately bounded to keep the codebase focused. Notable omissions:
+- Ordered price levels and FIFO queues implement price-time priority.
+- New, cancel and modify events pass through the matching engine.
+- Prices and quantities use integer representations.
+- CLI accepts events from a file or standard input.
+- Seeded synthetic flow provides a repeatable workload and a warm-up pass.
 
-- **Networking**: no socket layer, no FIX/ITCH/OUCH protocols. Events come from a file or stdin.
-- **Concurrency**: single-threaded only. Real engines either use a single hot thread with strict isolation or shard across multiple matching threads with cross-thread coordination.
-- **Persistence and recovery**: nothing is durable. A real engine writes every event to a log and can replay to reconstruct state after a crash.
-- **Self-trade prevention (STP)**: not implemented because the current data model lacks a `TraderId` field on orders. Adding this would be straightforward but cascades through every event and test; left as documented future work.
-- **Order types beyond basic limit orders**: no market orders (a marketable limit order is effectively a market order with a price cap), no stop orders, no iceberg orders, no IOC/FOK time-in-force flags.
-- **Multiple instruments**: one book at a time. Multi-instrument support would mean a `std::unordered_map<InstrumentId, OrderBook>` and dispatch by instrument.
+## Results
 
-## Benchmarks
+[Saved benchmark output](results/cleanup-benchmark.txt), GCC 15.2, Release:
 
-| Metric                | Value                  |
-|-----------------------|------------------------|
-| Events processed      | 1,000,000              |
-| Trades emitted        | 490,992                |
-| Wall time             | 0.20 s                 |
-| **Throughput**        | **4.9 M events/sec**   |
-| Mean latency / event  | 203 ns                 |
-| Final book size       | 38,467 orders          |
+| Measure | Observed value |
+|---|---:|
+| Events / trades | 1,000,000 / 490,992 |
+| Wall time | 0.0944904 seconds |
+| Wall time per event | 94.4904 ns |
+| Final resting orders | 38,467 |
 
-Reproduce with `./scripts/run_benchmark.sh`. The synthetic flow has roughly 60% new orders, 30% cancels, 10% modifies, with prices clustered geometrically around a random-walking midpoint; approximately half of the new orders end up marketable and produce fills.
+Timing varies with hardware, compiler and workload. TODO: controlled cross-engine comparison; no relative speed claim is verified.
 
-Caveats: this is `std::map`-backed, single-threaded, with heap-allocated `std::vector<Trade>` returned per event. Production engines hit 5–50× higher throughput by using price-indexed arrays, avoiding allocation on the hot path, and pinning to CPU cores. The number above measures *this engine on this synthetic flow on this hardware*, not a definitive performance bound.
+## What didn't work
 
+The optional warnings-as-errors build fails on existing shadowing and possible null-dereference diagnostics. CI uses the documented default warning policy and leaves those warnings visible. Networking, persistence, recovery, concurrency, self-trade prevention and multiple instruments are absent; this is a learning engine.
 
-## License
+## Tests, structure and licence
 
-MIT — see [LICENSE](LICENSE).
+[![CI](https://github.com/VChahar1/cpp-lob/actions/workflows/ci.yml/badge.svg)](https://github.com/VChahar1/cpp-lob/actions/workflows/ci.yml)
+
+All 50 test cases and 209 assertions pass. CI also checks the CLI and a small generated-flow benchmark. `include/lob/` and `src/` implement the book, `tests/` checks behavior, `examples/` generates flow, and `benches/` measures throughput. Code: [MIT](LICENSE), copyright 2026 Vaibhav Chahar. Vendored Catch2 retains its Boost licence header.
