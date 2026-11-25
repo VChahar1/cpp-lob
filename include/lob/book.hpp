@@ -11,106 +11,43 @@
 
 namespace lob {
 
-// ---- PriceLevel ----
-//
-// All resting orders at a single price, in FIFO time order.
-// Thin wrapper around std::deque<Order>.
-//
-// Why std::deque? Because price levels need:
-//   - O(1) push_back: newly arrived orders join the back
-//   - O(1) pop_front: oldest orders match first during matching
-//
-// std::vector gives O(1) push_back but O(n) pop_front (shifts all elements).
-// std::deque uses a segmented array internally and supports both ends in O(1).
 
 class PriceLevel {
 public:
     std::deque<Order> orders;
 
-    // Total resting quantity at this level.
     Quantity total_quantity() const noexcept;
 
-    // Number of distinct resting orders at this level.
     std::size_t count() const noexcept { return orders.size(); }
 
     bool empty() const noexcept { return orders.empty(); }
 };
 
-// ---- OrderBook ----
-//
-// Design:
-//   - bids and asks are each std::map<Price, PriceLevel>.
-//     std::map is sorted by key, giving O(log n) insert/lookup and fast
-//     access to both ends (best_bid = max bid = largest key,
-//     best_ask = min ask = smallest key).
-//   - Each PriceLevel holds orders in FIFO time order (std::deque).
-//   - `locations` is an O(1) auxiliary index: order id -> (side, price).
-//     Lets cancel find the right price level immediately.
-//
-// Invariant: every id in `locations` corresponds to exactly one order
-// resting in `bids` or `asks` at the recorded (side, price).
 
 class OrderBook {
 public:
     OrderBook() = default;
 
-    // ---- Read-only inspection ----
 
-    // Best (highest) bid price, if any.
     std::optional<Price> best_bid() const;
 
-    // Best (lowest) ask price, if any.
     std::optional<Price> best_ask() const;
 
-    // Spread = best_ask - best_bid. None if either side is empty
-    // or the book is crossed (defensive guard).
     std::optional<Price> spread() const;
 
-    // Total resting quantity at a given (side, price).
     Quantity depth_at(Side side, Price price) const;
 
-    // Number of resting orders in the book (both sides).
     std::size_t order_count() const noexcept { return locations_.size(); }
 
-    // ---- Internal helpers ----
-    //
-    // These are exposed for tests and for the matching engine (Day 2).
-    // They are NOT the public submit() API -- that comes on Day 2 and
-    // performs matching before resting any leftover quantity.
 
-    // Insert an order into the book WITHOUT matching.
-    // Precondition: no order with this id is currently resting.
-    // Violating the precondition triggers an assertion failure in debug builds.
     void insert_resting(const Order& order);
-    // Look at the front (oldest) order at the best opposite-side level.
-    // Returns nullptr if that side is empty.
-    // Used by the matching engine to inspect the next order to match.
     const Order* peek_front(Side side) const;
 
-    // Reduce the quantity of the front order on a given (side, price) level
-    // by `amount`. If the order becomes fully consumed, it is removed from
-    // the level and from the locations index. If the level becomes empty,
-    // it is erased from the map.
-    //
-    // Precondition: a level exists at (side, price) and its front order
-    // has at least `amount` quantity.
     void consume_front(Side side, Price price, Quantity amount);
-    // Remove an order from the book by id. Returns true if the order existed
-    // and was removed, false if no such order is resting on the book.
-    //
-    // This is a low-level primitive used by the cancel and modify code paths.
     bool remove_by_id(OrderId id);
-    // Look up a resting order by id. Returns nullptr if not present.
-    // Used by the modify path to read the current quantity for the keep-priority decision.
     const Order* lookup_resting(OrderId id) const;
 
-    // Update the quantity of a resting order in place. The order's position
-    // in its price level (and therefore its time priority) is preserved.
-    //
-    // Precondition: order exists; new_quantity > 0.
     void update_quantity_in_place(OrderId id, Quantity new_quantity);
-    // Test-only accessor for the locations map.
-    // Returns the (side, price) of a resting order, if it exists.
     std::optional<std::pair<Side, Price>> location_of(OrderId id) const;
 
 private:
@@ -119,4 +56,4 @@ private:
     std::unordered_map<OrderId, std::pair<Side, Price>> locations_;
 };
 
-}  // namespace lob
+}

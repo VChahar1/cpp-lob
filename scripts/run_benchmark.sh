@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Generate a 1M-event synthetic flow and benchmark the engine.
-# Run from the project root after building (build/ must exist).
 set -euo pipefail
 
 BUILD_DIR="${BUILD_DIR:-build}"

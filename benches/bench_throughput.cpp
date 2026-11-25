@@ -1,10 +1,3 @@
-// Throughput benchmark.
-//
-// Reads a pre-generated event file into memory (no parsing during timing),
-// then runs the events through the book and reports events/second.
-//
-// Usage:
-//   bench_throughput <events_file>
 
 #include <lob/book.hpp>
 #include <lob/events.hpp>
@@ -22,8 +15,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Load events into memory. We don't include parsing in the benchmark
-    // because we're measuring the engine, not the parser.
     std::ifstream in(argv[1]);
     if (!in) {
         std::cerr << "Failed to open: " << argv[1] << '\n';
@@ -40,8 +31,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Warm up: run the events once and discard. This pages in memory and
-    // primes branch predictors before the timed run.
     {
         lob::OrderBook warmup;
         std::size_t trade_count = 0;
@@ -52,7 +41,6 @@ int main(int argc, char** argv) {
         std::cerr << "Warmup: " << trade_count << " trades.\n";
     }
 
-    // Timed run.
     lob::OrderBook book;
     std::size_t trade_count = 0;
 

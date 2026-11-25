@@ -32,7 +32,7 @@ TEST_CASE("Modify event holds new fields", "[events]") {
 TEST_CASE("Trade equality compares all fields", "[events]") {
     Trade t1{1, 2, 100, 5, 1000};
     Trade t2{1, 2, 100, 5, 1000};
-    Trade t3{1, 2, 100, 5, 1001};  // different timestamp
+    Trade t3{1, 2, 100, 5, 1001};
     REQUIRE(t1 == t2);
     REQUIRE_FALSE(t1 == t3);
 }

@@ -11,7 +11,6 @@
 namespace lob {
 
 std::optional<OrderEvent> parse_event_line(const std::string& line) {
-    // Skip blank lines and comments.
     std::size_t i = 0;
     while (i < line.size() && std::isspace(static_cast<unsigned char>(line[i]))) ++i;
     if (i == line.size()) return std::nullopt;
@@ -60,8 +59,6 @@ std::vector<OrderEvent> read_events(std::istream& in, std::size_t* skipped_out) 
         if (ev) {
             events.push_back(std::move(*ev));
         } else if (!line.empty()) {
-            // We can't easily tell apart "blank/comment" from "malformed"
-            // without re-running the leading-whitespace check, so do that.
             std::size_t i = 0;
             while (i < line.size() && std::isspace(static_cast<unsigned char>(line[i]))) ++i;
             if (i < line.size() && line[i] != '#') {
@@ -81,4 +78,4 @@ void write_trade(std::ostream& out, const Trade& t) {
         << t.quantity  << '\n';
 }
 
-}  // namespace lob
+}

@@ -49,9 +49,9 @@ TEST_CASE("Blank lines and comments are skipped", "[io]") {
 
 TEST_CASE("Malformed lines return nullopt", "[io]") {
     REQUIRE_FALSE(parse_event_line("FOOBAR").has_value());
-    REQUIRE_FALSE(parse_event_line("NEW 1").has_value());         // too few fields
-    REQUIRE_FALSE(parse_event_line("NEW 1 X 10000 5").has_value()); // bad side
-    REQUIRE_FALSE(parse_event_line("NEW abc B 10000 5").has_value()); // non-numeric id
+    REQUIRE_FALSE(parse_event_line("NEW 1").has_value());
+    REQUIRE_FALSE(parse_event_line("NEW 1 X 10000 5").has_value());
+    REQUIRE_FALSE(parse_event_line("NEW abc B 10000 5").has_value());
 }
 
 TEST_CASE("read_events handles a multi-line stream", "[io]") {
