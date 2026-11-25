@@ -5,3 +5,11 @@ build/
 .vscode/
 .cache/
 compile_commands.json
+
+# Local secrets and credentials
+.env
+.env.*
+!.env.example
+*credentials*
+*.pem
+*.key

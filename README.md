@@ -1,29 +1,29 @@
 # cpp-lob
 
-[![CI](https://github.com/VChahar1/cpp-lob/actions/workflows/ci.yml/badge.svg)](https://github.com/VCHAHAR1/cpp-lob/actions/workflows/ci.yml)
+[![CI](https://github.com/VChahar1/cpp-lob/actions/workflows/ci.yml/badge.svg)](https://github.com/VChahar1/cpp-lob/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A limit order book and matching engine implemented in modern C++17. Built as a focused exercise in the data structures, algorithms, and engineering tradeoffs underlying continuous-double-auction exchange systems.
 
-The engine implements price-time priority matching, supports new/cancel/modify order events, and processes roughly 4.94 million events/sec single-threaded on a 1M-event synthetic flow (see [Benchmarks](#benchmarks)).
+The engine implements price-time priority matching, supports new/cancel/modify order events, and has a reproducible single-threaded synthetic-flow benchmark (see [Benchmarks](#benchmarks)).
 ## Quick start
 
-​```bash
+```bash
 git clone https://github.com/VChahar1/cpp-lob.git
 cd cpp-lob
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
-./build/tests/lob_tests       # ~50 unit + integration tests
+./build/tests/lob_tests       # 50 test cases / 209 assertions in the cleanup run
 ./scripts/run_benchmark.sh    # generates 1M synthetic events and benchmarks
-​```
+```
 
 For a quick demo:
 
-​```bash
+```bash
 echo "NEW 1 S 10100 5
 NEW 2 B 10100 5" | ./build/lob_cli
 # Output: TRADE 2 1 10100 5
-​```
+```
 ## What's not implemented (and why)
 
 This is a learning project, not a production exchange. Scope was deliberately bounded to keep the codebase focused. Notable omissions:
@@ -41,14 +41,18 @@ This is a learning project, not a production exchange. Scope was deliberately bo
 |-----------------------|------------------------|
 | Events processed      | 1,000,000              |
 | Trades emitted        | 490,992                |
-| Wall time             | 0.20 s                 |
-| **Throughput**        | **4.9 M events/sec**   |
-| Mean latency / event  | 203 ns                 |
+| Wall time             | 0.0944904 s            |
+| **Throughput**        | **10.5831 M events/sec** |
+| Wall time / event     | 94.4904 ns             |
 | Final book size       | 38,467 orders          |
 
 Reproduce with `./scripts/run_benchmark.sh`. The synthetic flow has roughly 60% new orders, 30% cancels, 10% modifies, with prices clustered geometrically around a random-walking midpoint; approximately half of the new orders end up marketable and produce fills.
 
-Caveats: this is `std::map`-backed, single-threaded, with heap-allocated `std::vector<Trade>` returned per event. Production engines hit 5–50× higher throughput by using price-indexed arrays, avoiding allocation on the hot path, and pinning to CPU cores. The number above measures *this engine on this synthetic flow on this hardware*, not a definitive performance bound.
+These are observations from one cleanup-environment run with GCC 15.2.0, Release and the default `LOB_WERROR=OFF`; the exact output is saved in [results/cleanup-benchmark.txt](results/cleanup-benchmark.txt). Timing depends on the machine, compiler and workload. The engine uses `std::map` and returns a heap-allocated `std::vector<Trade>` per event. No comparison with other engines was verified; TODO: add a controlled cross-engine benchmark before making comparative speed claims.
+
+## Validation status
+
+The documented Release build passed 50 test cases with 209 assertions. The stricter `LOB_WERROR=ON` build fails on existing shadowing and possible null-dereference diagnostics with GCC 15.2.0. The [CI badge](https://github.com/VChahar1/cpp-lob/actions/workflows/ci.yml) resolves correctly and reported a failing existing workflow during cleanup. Engine source and CI settings were not changed.
 
 
 ## License
